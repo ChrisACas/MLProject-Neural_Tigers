@@ -111,6 +111,6 @@ tx = tt[3349]
 
 
 tr = np.array(tx,dtype = np.uint8)
-
-cv.imshow('Sample', tr)
-cv.waitKey(0)
+print(tr)
+#cv.imshow('Sample', tr)
+#cv.waitKey(0)
