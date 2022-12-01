@@ -20,35 +20,14 @@ class NeuralNetwork:
 
     # TODO: implement a programmable amount of hidden layer initialization
     def init_layers(self, input_size, h_neurons_per_layer, h_layers, output_size):
-        '''
-        Get layer size info and develop weight array 
-        initialize random weights for each connection to next layer
-            weight array of output size, in array for every input node 
-        return these weight arrays for each node as layer
-        '''
-        '''layer1 = np.random.uniform(-1.,1.,size=(input_size, h_neurons_per_layer))\
-            /np.sqrt(input_size * h_neurons_per_layer)
-        
-        layer2 = np.random.uniform(-1.,1.,size=(h_neurons_per_layer, output_size))\
-            /np.sqrt(h_neurons_per_layer * output_size)'''
-
-        hl = []
-
-        '''layer_in = np.random.rand(input_size, h_neurons_per_layer)
-
-        for i in range(0, h_layers):
-            hl.append(np.random.rand(h_neurons_per_layer, h_neurons_per_layer))
-
-        layer_out = np.random.rand(h_neurons_per_layer, output_size)'''
-
         layer_in = np.random.uniform(-1.,1.,size=(input_size, h_neurons_per_layer))
-
-        for i in range(0, h_layers):
+        
+        hl = []
+        for _ in range(0, h_layers):
             hl.append(np.random.uniform(-1.,1.,size=(h_neurons_per_layer, h_neurons_per_layer)))
 
-        #layer_out = np.random.uniform(-1.,1.,size=(h_neurons_per_layer, output_size))
         layer_out = np.zeros((h_neurons_per_layer, output_size),np.float32)
-        
+    
         return [layer_in, hl, layer_out]
     
     def desired_array_out(self, label):
@@ -107,45 +86,32 @@ def softmax(x):
     return exp_element/np.sum(exp_element,axis=0)
 
 #derivative of softmax
-def d_softmax(x):
-    '''x_modified = [-5. if ele < -100.0 else ele for ele in x]
-    x_modified = [5. if ele > 100.0 else ele for ele in x_modified]
-    x_modified = np.array(x_modified)
-    #exp_element = np.exp(x_modified -x_modified.max())
-    exp_element=np.exp(x_modified)#-x.max())
-    sigma = exp_element/np.sum(exp_element,axis=0)
-    return (sigma)*(1-sigma)'''
-    SM = x.reshape((-1, 1))
-    jac = np.diagflat(x) - np.dot(SM, SM.T)
-    return jac
+def d_softmax(softmax):
+
+    # print(f'x:{x}')
+    # SM = x.reshape((-1, 1))
+    # jac = np.diagflat(x) - np.dot(SM, SM.T)
+    # print(f'jac:{jac}')
+    # return jac
+
+    return softmax * np.identity(softmax.size) - softmax.transpose() @ softmax
 
 
-    #forward and backward pass
+    
 def forward_backward_pass(x,y,nn,l_in,hl,l_out):
-    targets = np.zeros((len(y),10), np.float32)
-    targets[range(targets.shape[0]),y] = 1
-
-
     x_sigmoid = np.zeros(l_out.shape[0], np.float32)
     x_sigmoid_hl = []
     for i in range(0,nn.h_layers):
         x_sigmoid_hl.append(np.zeros(l_in.shape[1], np.float32))
+   
     # forward pass
     for i in range(0,len(x)):
-        #if i%50000 == 0:
-        #    print('i = {}'.format(i))
         x_i=x[i]
         y_i=nn.desired_array_out(y[i])
         if dbg:
             print('l1 shape = {}'.format(l_in.shape))
-            #print(l1.shape[0])
-            #print(l1.shape[1])
             print('l2 shape = {}'.format(l_out.shape))
-            #print(l2.shape[0])
-            #print(l2.shape[1])
-            #print(x_i)
-        #for layer_i in range(0,l1.shape[0]):
-            #neuron = l1[layer_i]
+
         x_l_in = np.dot(l_in.T,np.array(x_i).flatten())
         if dbg:
             print('x_l_in shape={}'.format(x_l_in.shape))
@@ -167,37 +133,32 @@ def forward_backward_pass(x,y,nn,l_in,hl,l_out):
         if dbg:
             print('x_sigmoid shape={}'.format(x_sigmoid.shape))
 
+        # chris: x_l_out is incorrect
         x_l_out = np.dot(x_sigmoid_hl[hl_index].T, l_out)
-        if dbg:
+        if False:
             print('x_l_out shape={}'.format(x_l_out.shape))
             print('x_l_out={}'.format(x_l_out))
         out = softmax(x_l_out)
         #out = sigmoid(x_l_out)
 
-
-        if dbg:
+        # chris: softmax correct
+        if False:
             print('out shape={}'.format(out.shape))
             print('out={}'.format(out))
         print(out, y_i)
         error = np.power(y_i-out,2).mean()
         if i%1==0:
             print('error at step {:5d}: {:10.6e}'.format(i,error))
-        #backward pass
 
-        #print('error={}'.format(error))
-        #delta_out = error * d_softmax(x_l_out)
-        delta_out = 2.0*error * d_sigmoid(x_l_out)
-        #delta_out = error.dot(l_out.T) * d_sigmoid(hl[nn.h_layers-1])
-        if dbg:
+        delta_out = 2 * error * d_softmax(x_l_out)
+        
+        if True:
             print('delta2={}'.format(delta_out))
             print('before updation l2 sum={}'.format(np.sum(l_out)))
-            #print('x_sigmoid shape={}'.format(x_sigmoid.shape))
             print('delta2.T shape={}'.format(delta_out.T.shape))
-            #print(delta2[:,None])
-            #print(x_sigmoid[:,None])
             print('l_out={} before updation'.format(l_out))
-        l_out = np.add(l_out, -1. * np.outer(x_sigmoid_hl[nn.h_layers - 1], lr * delta_out))  # delta2.T * x_sigmoid)
-        #l_out -= lr*hl[nn.h_layers-1].T.dot(delta_out)#add(l_out, -1.*np.outer(x_sigmoid_hl[nn.h_layers-1],lr*delta_out))#delta2.T * x_sigmoid)
+        l_out = np.add(l_out, -1. * np.outer(x_sigmoid_hl[nn.h_layers - 1], lr * delta_out))
+        
         if dbg:
             print('l_out={} after updation'.format(l_out))
             print('after updation l2 sum={}'.format(np.sum(l_out)))
@@ -212,17 +173,13 @@ def forward_backward_pass(x,y,nn,l_in,hl,l_out):
                 #print(hl[hl_index+1].shape)
                 delta_hl = ((hl[hl_index+1]).dot(delta_hl.T)).T * d_sigmoid(x_sigmoid_hl[hl_index])
                 hl[hl_index] = np.add(hl[hl_index], -1.*lr * delta_hl)
-        #delta_in = ((l_out).dot(error.T)).T * d_sigmoid(x_l_in)
+
         delta_in = ((hl[0]).dot(delta_hl.T)).T * d_sigmoid(x_l_in)
         if dbg:
             print('delta1 shape={}'.format(delta_in.shape))
             print('x_i.T shape={}'.format((np.array(x_i).flatten()).T.shape))
-        #l1 = np.add(l1, x.T @ delta1)
-        #l1 = np.add(l1, (np.array(x_i).flatten()).T@delta1)
+        
         l_in = np.add(l_in, np.outer(np.array(x_i).flatten(),-1.*lr*delta_in))
-        #exit(0)
-        #print('l_out=',l_out)
-        #exit(0)
     return out,l_in,hl,l_out
 
 def predict(x,y,nn,l_in,hl,l_out,y_test,y_pred):
@@ -282,38 +239,31 @@ def get_input(x_train, y_train, idx):
     return x_train[idx], y_train[idx]
 
 def main():
-    # dataloader = MNIST_Dataloader()
-    # dataloader.show_images(5, 5)
-    # dataloader.simple_show()
 
-    nn = NeuralNetwork()
+    # Get training data and normalize values in matrix
     dataloader = MNIST_Dataloader()
     x_train, y_train = dataloader.get_train_data()
     for i in range(0,len(x_train)):
         for j in range(0,len(x_train[i])):
             x_train[i][j] = x_train[i][j]/255.
-    #print(x_train[0])
-    #    print(x_train[i][0]/255.)
-    #x_train[0] = x_train[0]/255. #normalize data
-
-    #l1, _ = get_l1(x_train,y_train,0)
-    #x,y = get_input(x_train,y_train,0)
-    #out,update_l1,update_l2=forward_backward_pass(x_train, y_train, nn)
-    #print('out = {}'.format(out))
-
-    #print(nn.desired_array_out([3]))
-    #print(nn.desired_array_out([9]))
+   
+    # initialize input layer, hidden layer, output layer
+    nn = NeuralNetwork()
     l_in = nn.layers[0]
-    # print(l1)
     hl = nn.layers[1]
     l_out = nn.layers[2]
+
+    print(f'input layer: {l_in}')
+    print(f'hidden layer: {hl}')
+    print(f'output layer: {l_out}')
+    
+    exit()
 
     print('training started...')
     total_epochs = 1
     for epoch in range(0,total_epochs):
         print('epoch={}'.format(epoch))
         out,l_in,hl,l_out = forward_backward_pass(x_train,y_train,nn,l_in,hl,l_out)
-        #print('l_out={}'.format(l_out))
 
     y_test = []
     y_pred = []
