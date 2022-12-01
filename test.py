@@ -7,11 +7,11 @@ from sklearn.metrics import confusion_matrix
 import pandas as pd
 import math
 
-lr = .00000000000001 #learning rate
+lr = .000000000000005 #learning rate
 dbg = 0
 pred_dbg = 0
 class NeuralNetwork:
-    def __init__(self, input_size=28*28, output_size=10, h_layers=1, h_neurons_per_layer=16):
+    def __init__(self, input_size=28*28, output_size=10, h_layers=1, h_neurons_per_layer=28):
         self.input_size = input_size
         self.output_size = output_size
         self.h_layers = h_layers
