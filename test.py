@@ -7,7 +7,7 @@ from sklearn.metrics import confusion_matrix
 import pandas as pd
 import math
 
-lr = .000000000000005 #learning rate
+lr = .0000000001 #learning rate
 dbg = 0
 pred_dbg = 0
 class NeuralNetwork:
@@ -38,7 +38,7 @@ class NeuralNetwork:
         desired_array = np.zeros(self.output_size, np.float32)
         desired_array[label] = 1
         
-        return desired_array
+        return np.array(desired_array)
 
 #Sigmoid funstion
 def sigmoid(x):
@@ -51,96 +51,71 @@ def sigmoid(x):
 
 #derivative of sigmoid
 def d_sigmoid(x):
-    x[x<-100.] = -5.
-    x[x > 100.] = 5.
-  
-    if dbg:
-        print(x)
     sigma = 1/(np.exp(np.multiply(-1., x)+1))
     return sigma*(1-sigma)
-    #return (np.exp(-x))/((np.exp(-x)+1)**2)
 
 #Softmax
 def softmax(x):
-    x_modified = [-5. if ele < -100.0 else ele for ele in x]
-    x_modified = [5. if ele > 100.0 else ele for ele in x_modified]
-    x_modified = np.array(x_modified)
-    exp_element = np.exp(x_modified - np.max(x_modified))
+    exp_element = np.exp(x - np.max(x))
     return exp_element/np.sum(exp_element,axis=0)
 
-#derivative of softmax
+
 def d_softmax(x):
-
-    # print(f'x:{x}')
-    # SM = x.reshape((-1, 1))
-    # jac = np.diagflat(x) - np.dot(SM, SM.T)
-    # print(f'jac:{jac}')
-    # return jac
-    x_modified = np.array([-5. if ele < -100.0 else ele for ele in x])
-    x_modified = np.array([5. if ele > 100.0 else ele for ele in x_modified])
-    return x_modified * np.identity(x_modified.size) - x_modified.transpose() @ x_modified
-
-
+    exp_element=np.exp(x-x.max())
+    return exp_element/np.sum(exp_element,axis=0)*(1-exp_element/np.sum(exp_element,axis=0))
     
 def forward_backward_pass(x,y,nn,l_in,l_out):
-    # x_sigmoid = np.zeros(l_out.shape[0], np.float32)
-    # x_sigmoid_hl = []
-    # for i in range(0,nn.h_layers):
-    #     x_sigmoid_hl.append(np.zeros(l_in.shape[1], np.float32))
-   
-    # forward pass
+
     for i in range(0,len(x)):
-        x_i=x[i]
-        y_i=nn.desired_array_out(y[i])
+        # transform image matrix flat array of values
+        batch = 30
+        sample=np.random.randint(0,x.shape[0],size=(batch))
+        x_i=x[sample].reshape((-1,28*28))
+        y_i=y[sample]
 
-
+        # print(f'l_in: {l_in.shape}')
+        # print(f'l_out: {l_out.shape}')
+    
         # foward pass from input to hidden
-        x_l_in = np.dot(l_in.T, np.array(x_i).flatten())
+        x_l_in = np.dot(x_i, l_in)
         x_in_sigmoid = sigmoid(x_l_in)
-        
-        # print(f'x_in_sigmoid: {x_in_sigmoid}')
-
-        
+                
         # foward pass from hidden to output
-        x_l_out = np.dot(x_in_sigmoid.T, l_out)
+        x_l_out = np.dot(x_in_sigmoid, l_out)
         out = softmax(x_l_out)
 
-        # print(f'x_l_out: {x_l_out}')
-        # print(f'out: {out}')
+        # print(f'x_l_in: {x_l_in.shape}')
+        # print(f'x_in_sigmoid: {x_in_sigmoid.shape}')
+        # print(f'x_l_out: {x_l_out.shape}')
+        # print(f'out: {out.shape}')
+        # print(f'y_i: {y_i.shape}')
 
         #backpropogate output to hidden
-        error = np.power(y_i-out,2).mean()
-        delta_out = 2 * error * d_softmax(x_l_out)
-        l_out -= lr * ( x_l_out.T @ delta_out )
+        error = 2*(out-y_i) / out.shape[0] * d_softmax(x_l_out)
+        delta_out = x_in_sigmoid.T @ error
+        # print(f'error.shape: {error.shape}')
+        # print(f'd_softmax(x_l_out) Shape: {d_softmax(x_l_out).shape}')
+        # print(f'delta_out Shape: {delta_out.shape}')
+        
+        error = (l_out.dot(error.T).T * d_sigmoid(x_l_in))
+        delta_in = x_i.T@error
+        # print(f'error.shape: {error.shape}')
+        # print(f'd_sigmoid(x_l_in) shape: {d_sigmoid(x_l_in).shape}')
+        # print(f'delta_in.shape: {delta_in.shape}')
 
+        l_out -= lr * ( delta_out )
+        l_in -= lr * ( delta_in )
+        # print(f'l_out Shape: {l_out.shape}')
+        # print(f'l_in Shape: {l_in.shape}')
+        # print(f'delta_out.shape: {delta_out.shape}')
+        # print(f'delta_in.shape: {delta_in.shape}')
 
-        # print(f'error: {error}')
-        # print(f'delta_out.shape: {delta_out}')
-        # print(f'l_out.shape: {l_out.shape}')
-
-        #backpropogate hidden to input
-        delta_in = 2 * error * d_sigmoid(x_in_sigmoid)
-        l_in -= lr * ( x_l_in.T @ delta_in )
 
         # print(f'delta_in.shape: {delta_in}')
         # print(f'l_in.shape: {l_in.shape}')
-
-        '''
-        # for hl_index in reversed(range(0,nn.h_layers)):
-        #     if hl_index == nn.h_layers-1:
-        #         delta_hl = ((l_out).dot(delta_out.T)).T * d_sigmoid(x_sigmoid_hl[hl_index])
-        #         hl[hl_index] = np.add(hl[hl_index],-1.*lr*delta_hl)
-        #     else:
-        #         delta_hl = ((hl[hl_index+1]).dot(delta_hl.T)).T * d_sigmoid(x_sigmoid_hl[hl_index])
-        #         hl[hl_index] = np.add(hl[hl_index], -1.*lr * delta_hl)
-
-        #delta_in = ((hl[0]).dot(delta_hl.T)).T * d_sigmoid(x_l_in)
-    
-        #l_in = np.add(l_in, np.outer(np.array(x_i).flatten(),-1.*lr*delta_in))
-        '''
-    print()
-    print(f'l_out: {l_out}')
+        
     return l_in,l_out
+        
 
 def predict(x,y,nn,l_in,l_out,y_test, y_pred):
     # forward pass
@@ -174,23 +149,32 @@ def main():
 
     # Get training data and normalize values in matrix
     dataloader = MNIST_Dataloader()
+    nn = NeuralNetwork()
     x_train, y_train = dataloader.get_train_data()
+
+    # print(f'x_train.shape: {x_train.shape}')
+    # print(f'y_train.shape: {y_train.shape}')
+    # print(f'y_train.size: {y_train.shape}')
+
+    y_train = np.array([nn.desired_array_out(y) for y in y_train])
+
+    # print(f'y_train.shape: {y_train.shape}')
+
     for i in range(0,len(x_train)):
         for j in range(0,len(x_train[i])):
             x_train[i][j] = x_train[i][j]/255.
    
-
      # initialize input layer, hidden layer, output layer
-    nn = NeuralNetwork()
+    
     l_in = nn.layers[0]     # connection between input layer and hidden layer
     l_out = nn.layers[2]    # connection between hidden layer and output layer
 
-    print(f'input layer: {l_in.shape}')
-    print(f'output layer: {l_out.shape}')
+    # print(f'input layer: {l_in.shape}')
+    # print(f'output layer: {l_out.shape}')
     
 
     print('training started...')
-    total_epochs = 5
+    total_epochs = 10
     for epoch in range(0,total_epochs):
         print('epoch={}'.format(epoch))
         l_in,l_out = forward_backward_pass(x_train,y_train,nn,l_in,l_out)

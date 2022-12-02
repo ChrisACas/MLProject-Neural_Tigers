@@ -54,11 +54,12 @@ class MNIST_Dataloader:
 
     def get_test_data(self):
         x_test, y_test = self.read_image_labels(self.test_images_path, self.test_labels_path)
-        return x_test, y_test
+        return np.array(x_test), np.array(y_test)
 
     def get_train_data(self):
         x_train, y_train = self.read_image_labels(self.training_images_path, self.training_labels_path)
-        return x_train, y_train
+        return np.array(x_train), np.array(y_train)
+
 
     def get_image_shape(self):
         # TODO: Change this to show either train or test images
