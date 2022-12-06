@@ -59,16 +59,16 @@ def d_softmax(x):
 
     #forward and backward pass
 def forward_backward_pass(x,y,l1,l2):
-    targets = np.zeros((len(y),10), np.float32)
-    targets[range(targets.shape[0]),y] = 1
+    desired_out = np.zeros((len(y),10), np.float32)
+    desired_out[range(desired_out.shape[0]),y] = 1
 
-    # print(f'Targets: {targets}')
-    # print(f'x: {x.shape}')
-    # print(f'y: {targets.shape}')  
+    
     
     # forward pass
+    ## input layer to hidden layer
     x_l1=x.dot(l1)
     x_sigmoid=sigmoid(x_l1)
+    ## hidden layer to output layer
     x_l2=x_sigmoid.dot(l2)
     out=softmax(x_l2)
 
@@ -78,7 +78,7 @@ def forward_backward_pass(x,y,l1,l2):
     # print(f'x_l2: {x_l2.shape}')
 
     # backpropogation l2
-    error=2*(out-targets)/out.shape[0]*d_softmax(x_l2)
+    error=2*(out-desired_out)/out.shape[0]*d_softmax(x_l2)
     update_l2=x_sigmoid.T@error
 
     # print(f'Error Shape: {error.shape}')
@@ -91,7 +91,6 @@ def forward_backward_pass(x,y,l1,l2):
     # print(f'l2 dot error Shape: {l2.dot(error.T).T.shape}')
     # print(f'After Sigmoid Deriv: {d_sigmoid(x_l1).shape}')
     # print(f'Out Shape: {out.shape}')
-    # print(f'Targets shape: {targets.shape}')
     # print(f'Before Softmax Deriv: {x_l2.shape}: {"x_l2"}')
     
     
@@ -110,6 +109,17 @@ def forward_backward_pass(x,y,l1,l2):
     # print(f'update_l2.shape: {update_l2.shape}')
     return out,update_l1,update_l2
 
+def predict(x, l1, l2):
+    # forward pass
+    ## input layer to hidden layer
+    x_l1=x.dot(l1)
+    x_sigmoid=sigmoid(x_l1)
+    ## hidden layer to output layer
+    x_l2=x_sigmoid.dot(l2)
+    out=softmax(x_l2)
+
+    return out
+    
 def main():
     # dataloader = MNIST_Dataloader()
     # dataloader.show_images(5, 5)
@@ -164,14 +174,14 @@ def main():
                         X_val[i][j] =  X_val[i][j] + np.random.normal(noise_mean, noise_sigma)
                         X_val[i][j] = [1.0 if ele > 1.0 else ele for ele in X_val[i][j]]                                
 
-            # easy prediction function
-            val_out=np.argmax(softmax(sigmoid(X_val.reshape((-1,28*28)).dot(l1)).dot(l2)),axis=1)
-            y_final_pred_list = val_out
+            # prediction function, get highest probability of classification
+            y_final_pred_list = np.argmax(predict(X_val.reshape((-1,28*28)), l1, l2), axis=1)
+
 
             accuracy=(classification==y).mean()
             accuracies.append(accuracy)
             
-            val_acc=(val_out==Y_val).mean()
+            val_acc=(y_final_pred_list==Y_val).mean()
             val_accuracies.append(val_acc.item())
             
             epochs_list.append(i)
@@ -199,6 +209,7 @@ def main():
     print('\nClassification Report\n')
     print(classification_report(y_test, y_pred, target_names=['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']))
 
+    exit()
     plt.title("Epoch v Accuracy")
 
     plt.xlabel("Epochs")
