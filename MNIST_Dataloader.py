@@ -8,8 +8,8 @@ class MNIST_Dataloader:
     http://yann.lecun.com/exdb/mnist/
     '''
     def __init__(self): 
-        self.training_labels_path = "./data/train-images-idx3-ubyte"
-        self.training_images_path = "./data/train-labels-idx1-ubyte"
+        self.training_labels_path = "./data/train-labels-idx1-ubyte"
+        self.training_images_path = "./data/train-images-idx3-ubyte"
         self.test_labels_path = "data/t10k-labels-idx1-ubyte"
         self.test_images_path = "data/t10k-images-idx3-ubyte"
         
@@ -53,11 +53,11 @@ class MNIST_Dataloader:
         return images, labels
 
     def get_test_data(self):
-        x_test, y_test = self.read_image_labels(self.test_images_path, self.test_labels_path)
+        x_test, y_test = self.read_image_labels(self.test_labels_path, self.test_images_path,)
         return np.array(x_test), np.array(y_test)
 
     def get_train_data(self):
-        x_train, y_train = self.read_image_labels(self.training_images_path, self.training_labels_path)
+        x_train, y_train = self.read_image_labels(self.training_labels_path, self.training_images_path)
         return np.array(x_train), np.array(y_train)
 
 
