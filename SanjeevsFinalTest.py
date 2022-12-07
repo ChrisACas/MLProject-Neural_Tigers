@@ -121,7 +121,7 @@ def main():
     l1 = nn.layers[0]
     l2 = nn.layers[1]
     
-    epochs=1000
+    epochs=200
     lr=0.001
     batch=30
 
