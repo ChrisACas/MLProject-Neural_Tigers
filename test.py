@@ -58,12 +58,10 @@ def d_softmax(x):
     return exp_element/np.sum(exp_element,axis=0)*(1-exp_element/np.sum(exp_element,axis=0))
 
     #forward and backward pass
-def forward_backward_pass(x,y,l1,l2):
+def mlp_backpropogation(x,y,l1,l2):
     desired_out = np.zeros((len(y),10), np.float32)
     desired_out[range(desired_out.shape[0]),y] = 1
 
-    
-    
     # forward pass
     ## input layer to hidden layer
     x_l1=x.dot(l1)
@@ -72,41 +70,15 @@ def forward_backward_pass(x,y,l1,l2):
     x_l2=x_sigmoid.dot(l2)
     out=softmax(x_l2)
 
-    # print(f'l1: {l1.shape}')
-    # print(f'l2: {l2.shape}')
-    # print(f'x_l1: {x_l1.shape}')
-    # print(f'x_l2: {x_l2.shape}')
-
     # backpropogation l2
     error=2*(out-desired_out)/out.shape[0]*d_softmax(x_l2)
     update_l2=x_sigmoid.T@error
 
-    # print(f'Error Shape: {error.shape}')
-    # print(f'Softmax Deriv Shape: {d_softmax(x_l2).shape}')
-    # print(f'update_l2.shape: {update_l2.shape}')
-    
-    # print(f'l2 Shape: {l2.shape}')
-    # print(f'update_l2: {update_l2.shape}')
-    # print(f'Error T Shape: {error.T.shape}')
-    # print(f'l2 dot error Shape: {l2.dot(error.T).T.shape}')
-    # print(f'After Sigmoid Deriv: {d_sigmoid(x_l1).shape}')
-    # print(f'Out Shape: {out.shape}')
-    # print(f'Before Softmax Deriv: {x_l2.shape}: {"x_l2"}')
-    
     
     # backpropogation l1
     error=((l2).dot(error.T)).T*d_sigmoid(x_l1)
     update_l1=x.T@error
 
-    # print(f'Error Shape: {error.shape}')
-    # print(f'Sigmoid Deriv: {d_sigmoid(x_l1).shape}')
-    # print(f'update_l1.shape: {update_l1.shape}')
-    
-
-    # print(f'l2 Shape: {l2.shape}')
-    # print(f'Before Sigmoid Deriv: {x_l1.shape}')
-    # 
-    # print(f'update_l2.shape: {update_l2.shape}')
     return out,update_l1,update_l2
 
 def predict(x, l1, l2):
@@ -119,6 +91,15 @@ def predict(x, l1, l2):
     out=softmax(x_l2)
 
     return out
+
+def add_gaussian_noise(x, noise_mean, noise_sigma):
+    print(" Adding Guassian Noise")
+    noise_mean = 0.0
+    noise_sigma = 0.05
+    for i in range(0, len(x)):
+        for j in range(0, len(x[i])):
+            x[i][j] =  x[i][j] + np.random.normal(noise_mean, noise_sigma)
+            x[i][j] = [1.0 if ele > 1.0 else ele for ele in x[i][j]]
     
 def main():
     # dataloader = MNIST_Dataloader()
@@ -133,63 +114,50 @@ def main():
     lr=0.001
     batch=30
 
-    y_final_pred_list = []
+    y_pred_list = []
     accuracies, val_accuracies = [], []
     epochs_list=[]
 
     dataloader = MNIST_Dataloader()
     x_train, y_train = dataloader.get_train_data()
+    x_test, y_test = dataloader.get_test_data()
 
     rand=np.arange(60000)
     np.random.shuffle(rand)
-   
-    X_val, Y_val = dataloader.get_test_data()
-    print(f'Y_val: {Y_val}')
-    
 
     for i in range(epochs):
         sample=np.random.randint(0,x_train.shape[0],size=(batch))
 
-        # print(f'x_train:{x_train.shape}')
-        # print(f'y_train:{y_train.shape}')
         x=x_train[sample].reshape((-1,28*28))
         y=y_train[sample]
-        out,update_l1,update_l2=forward_backward_pass(x,y,l1,l2)
-    
-        classification=np.argmax(out,axis=1)
-        accuracy=(classification==y).mean()
-        
+        out,update_l1,update_l2=mlp_backpropogation(x,y,l1,l2)
                   
         l1=l1-lr*update_l1
         l2=l2-lr*update_l2
         
+        # every 10 epochs record accuracy 
         if(i%10==0):   
+
             if(i==(epochs-10)):
-                print(" WITH NOISE")
-                noise_mean = 0.0
-                noise_sigma = 0.05
-                for i in range(0, len(X_val)):
-                    for j in range(0, len(X_val[i])):
-                        # X_val[i][j] = X_val[i][j] / 255.
-                        X_val[i][j] =  X_val[i][j] + np.random.normal(noise_mean, noise_sigma)
-                        X_val[i][j] = [1.0 if ele > 1.0 else ele for ele in X_val[i][j]]                                
+                add_gaussian_noise(x_test, 0.0, 0.15)                          
 
             # prediction function, get highest probability of classification
-            y_final_pred_list = np.argmax(predict(X_val.reshape((-1,28*28)), l1, l2), axis=1)
+            y_pred_list = np.argmax(predict(x_test.reshape((-1,28*28)), l1, l2), axis=1)
 
+            classification=np.argmax(out,axis=1)
+            accuracy=(classification==y).mean()
 
             accuracy=(classification==y).mean()
             accuracies.append(accuracy)
             
-            val_acc=(y_final_pred_list==Y_val).mean()
+            val_acc=(y_pred_list==y_test).mean()
             val_accuracies.append(val_acc.item())
-            
+    
             epochs_list.append(i)
 
         if(i%10==0): print(f'Epoch {i}: Training Accuracy: {accuracy:.3f} | Validation Accuracy:{val_acc:.3f}')
 
-    y_pred = np.array(y_final_pred_list)
-    y_test = Y_val
+    y_pred = np.array(y_pred_list)
     confusion = confusion_matrix(y_test, y_pred)
     print(confusion)
     print('\nAccuracy: {:.2f}\n'.format(accuracy_score(y_test, y_pred)))
@@ -220,13 +188,6 @@ def main():
 
     plt.legend(loc="upper left")
     plt.show()
-    
-
-        
-
-
-
-    
     
   
 if __name__=="__main__":
