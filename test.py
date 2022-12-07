@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import copy
 from MNIST_Dataloader import MNIST_Dataloader
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
@@ -93,13 +94,34 @@ def predict(x, l1, l2):
     return out
 
 def add_gaussian_noise(x, noise_mean, noise_sigma):
+    x_with_noise = copy.deepcopy(x)
     print(" Adding Guassian Noise")
     noise_mean = 0.0
     noise_sigma = 0.05
-    for i in range(0, len(x)):
-        for j in range(0, len(x[i])):
-            x[i][j] =  x[i][j] + np.random.normal(noise_mean, noise_sigma)
-            x[i][j] = [1.0 if ele > 1.0 else ele for ele in x[i][j]]
+    for i in range(0, len(x_with_noise)):
+        for j in range(0, len(x_with_noise[i])):
+            x_with_noise[i][j] =  x_with_noise[i][j] + np.random.normal(noise_mean, noise_sigma)
+            x_with_noise[i][j] = [1.0 if ele > 1.0 else ele for ele in x_with_noise[i][j]]
+    return x_with_noise
+            
+    
+def analytics(y_test, y_pred): 
+    print('\nAccuracy: {:.2f}\n'.format(accuracy_score(y_test, y_pred)))
+
+    print('Micro Precision: {:.2f}'.format(precision_score(y_test, y_pred, average='micro')))
+    print('Micro Recall: {:.2f}'.format(recall_score(y_test, y_pred, average='micro')))
+    print('Micro F1-score: {:.2f}\n'.format(f1_score(y_test, y_pred, average='micro')))
+
+    print('Macro Precision: {:.2f}'.format(precision_score(y_test, y_pred, average='macro')))
+    print('Macro Recall: {:.2f}'.format(recall_score(y_test, y_pred, average='macro')))
+    print('Macro F1-score: {:.2f}\n'.format(f1_score(y_test, y_pred, average='macro')))
+
+    print('Weighted Precision: {:.2f}'.format(precision_score(y_test, y_pred, average='weighted')))
+    print('Weighted Recall: {:.2f}'.format(recall_score(y_test, y_pred, average='weighted')))
+    print('Weighted F1-score: {:.2f}'.format(f1_score(y_test, y_pred, average='weighted')))
+
+    print('\nClassification Report\n')
+    print(classification_report(y_test, y_pred, target_names=['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']))
     
 def main():
     # dataloader = MNIST_Dataloader()
@@ -115,6 +137,7 @@ def main():
     batch=30
 
     y_pred_list = []
+    y_guassian_pred_list = []
     accuracies, val_accuracies = [], []
     epochs_list=[]
 
@@ -137,47 +160,37 @@ def main():
         
         # every 10 epochs record accuracy 
         if(i%10==0):   
-
-            if(i==(epochs-10)):
-                add_gaussian_noise(x_test, 0.0, 0.15)                          
-
+                        
             # prediction function, get highest probability of classification
             y_pred_list = np.argmax(predict(x_test.reshape((-1,28*28)), l1, l2), axis=1)
 
             classification=np.argmax(out,axis=1)
-            accuracy=(classification==y).mean()
-
-            accuracy=(classification==y).mean()
-            accuracies.append(accuracy)
+            training_accuracy=(classification==y).mean()
+            accuracies.append(training_accuracy)
             
             val_acc=(y_pred_list==y_test).mean()
             val_accuracies.append(val_acc.item())
     
             epochs_list.append(i)
+            
+            if(i==(epochs-10)):
+                x_test_w_guassian = add_gaussian_noise(x_test, 0.0, 0.15)
+                y_guassian_pred_list = np.argmax(predict(x_test_w_guassian.reshape((-1,28*28)), l1, l2), axis=1)
+                gaussian_acc=(y_guassian_pred_list==y_test).mean()
+                print(f'Epoch {i}: Training Accuracy: {training_accuracy:.3f} | Validation Accuracy w/ Gaussian:{gaussian_acc:.3f}')  
 
-        if(i%10==0): print(f'Epoch {i}: Training Accuracy: {accuracy:.3f} | Validation Accuracy:{val_acc:.3f}')
+        if(i%10==0): print(f'Epoch {i}: Training Accuracy: {training_accuracy:.3f} | Validation Accuracy:{val_acc:.3f}')
 
     y_pred = np.array(y_pred_list)
     confusion = confusion_matrix(y_test, y_pred)
     print(confusion)
-    print('\nAccuracy: {:.2f}\n'.format(accuracy_score(y_test, y_pred)))
+    
+    # Normal Training and Testing Analytics
+    analytics(y_test, y_pred)
 
-    print('Micro Precision: {:.2f}'.format(precision_score(y_test, y_pred, average='micro')))
-    print('Micro Recall: {:.2f}'.format(recall_score(y_test, y_pred, average='micro')))
-    print('Micro F1-score: {:.2f}\n'.format(f1_score(y_test, y_pred, average='micro')))
+    # Normal Training and Testing with Guassian Noise Analytics
+    analytics(y_test, y_guassian_pred_list)
 
-    print('Macro Precision: {:.2f}'.format(precision_score(y_test, y_pred, average='macro')))
-    print('Macro Recall: {:.2f}'.format(recall_score(y_test, y_pred, average='macro')))
-    print('Macro F1-score: {:.2f}\n'.format(f1_score(y_test, y_pred, average='macro')))
-
-    print('Weighted Precision: {:.2f}'.format(precision_score(y_test, y_pred, average='weighted')))
-    print('Weighted Recall: {:.2f}'.format(recall_score(y_test, y_pred, average='weighted')))
-    print('Weighted F1-score: {:.2f}'.format(f1_score(y_test, y_pred, average='weighted')))
-
-    print('\nClassification Report\n')
-    print(classification_report(y_test, y_pred, target_names=['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']))
-
-    exit()
     plt.title("Epoch v Accuracy")
 
     plt.xlabel("Epochs")
