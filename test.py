@@ -185,6 +185,7 @@ def main():
     
             epochs_list.append(i)
             
+            # last iteration test model with gaussian noisse
             if(i==(epochs-10)):
                 x_test_w_guassian = add_gaussian_noise(x_test, 0.0, 0.15)
                 y_guassian_pred_list = np.argmax(predict(x_test_w_guassian.reshape((-1,28*28)), l1, l2), axis=1)
@@ -206,9 +207,7 @@ def main():
     print("====================================================")
     print("Analytics of Accuracies when Gaussian noise is added")
     analytics(y_test, y_guassian_pred_list)
-   
-
-    
+ 
   
 if __name__=="__main__":
     main()
