@@ -203,9 +203,10 @@ def main():
     plot_traintest(plot_title, accuracies, val_accuracies, epochs_list)
 
     # Normal Training and Testing with Guassian Noise Analytics
+    print("====================================================")
+    print("Analytics of Accuracies when Gaussian noise is added")
     analytics(y_test, y_guassian_pred_list)
-    plot_title = "Epoch v Accuracy with Guassian Noise"
-    plot_traintest(plot_title, accuracies, val_accuracies, epochs_list)
+   
 
     
   
