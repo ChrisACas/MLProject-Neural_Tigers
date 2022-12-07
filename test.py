@@ -103,8 +103,7 @@ def add_gaussian_noise(x, noise_mean, noise_sigma):
             x_with_noise[i][j] =  x_with_noise[i][j] + np.random.normal(noise_mean, noise_sigma)
             x_with_noise[i][j] = [1.0 if ele > 1.0 else ele for ele in x_with_noise[i][j]]
     return x_with_noise
-            
-    
+  
 def analytics(y_test, y_pred): 
     print('\nAccuracy: {:.2f}\n'.format(accuracy_score(y_test, y_pred)))
 
@@ -122,7 +121,20 @@ def analytics(y_test, y_pred):
 
     print('\nClassification Report\n')
     print(classification_report(y_test, y_pred, target_names=['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']))
-    
+
+def plot_traintest(plot_title, train_acc, test_acc, epochs):
+    plt.title(plot_title)
+
+    plt.xlabel("Epochs")
+    plt.ylabel("Accuracy")
+
+    plt.plot(epochs, train_acc, label="Training Accuracy")
+    plt.plot(epochs, test_acc, label="Validation Accuracy")
+
+    plt.legend(loc="upper left")
+    plt.show()
+    plt.clf()
+
 def main():
     # dataloader = MNIST_Dataloader()
     # dataloader.show_images(5, 5)
@@ -187,20 +199,14 @@ def main():
     
     # Normal Training and Testing Analytics
     analytics(y_test, y_pred)
+    plot_title = "Epoch v Accuracy"
+    plot_traintest(plot_title, accuracies, val_accuracies, epochs_list)
 
     # Normal Training and Testing with Guassian Noise Analytics
     analytics(y_test, y_guassian_pred_list)
+    plot_title = "Epoch v Accuracy with Guassian Noise"
+    plot_traintest(plot_title, accuracies, val_accuracies, epochs_list)
 
-    plt.title("Epoch v Accuracy")
-
-    plt.xlabel("Epochs")
-    plt.ylabel("Accuracy")
-
-    plt.plot(epochs_list, accuracies, label="Training Accuracy")
-    plt.plot(epochs_list, val_accuracies, label="Validation Accuracy")
-
-    plt.legend(loc="upper left")
-    plt.show()
     
   
 if __name__=="__main__":
